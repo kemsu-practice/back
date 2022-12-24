@@ -5,6 +5,8 @@ const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 const passport_auth = require('./middleware/passport_auth');
 const cors = require('cors')
+require('dotenv').config()
+const process = require('process');
 
 const indexRouter = require('./routes/index');
 const authRouter = require('./routes/auth');
@@ -12,8 +14,13 @@ const gamesRouter = require('./routes/games');
 
 const app = express();
 
+const corsOptions = {
+  origin:  process.env.CORS_ORIGIN ?? 'https://practice.kemsu.xserge.ru',
+  optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
+}
+
 app.use(logger('dev'));
-app.use(cors())
+app.use(cors(corsOptions))
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());

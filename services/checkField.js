@@ -125,4 +125,10 @@ function getSize(cells, figureCell) {
   return figure.length;
 }
 
-module.exports = {checkField, getSize}
+function getFigure(cells, row, col) {
+  const matrix = getMatrixFromCells(cells);
+  const figure = findAllCellsOfFigure({row, col}, matrix, [])
+  return figure;
+}
+
+module.exports = {checkField, getSize, getFigure}

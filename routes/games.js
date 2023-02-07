@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {Game, Field, Shot} = require("../models");
 const passport = require("passport");
-const {checkField, getSize} = require("../services/checkField");
+const {checkField, getSize, getFigure} = require("../services/checkField");
 const {normalizeGame} = require("../services/normalizeGame");
 
 /* GET games listing. */
@@ -125,6 +125,45 @@ router.post('/:id/field', passport.authenticate('jwt', {session: false}), async 
   res.json({game: await normalizeGame(game, user)})
 });
 
+const shot = async (game, user, row, col) => {
+  const enemyUser = game.enemy !== user.id ? game.enemy : game.player;
+
+  const existedShot = await Shot.findOne({
+    where: {
+      game: game.id,
+      player: enemyUser,
+      row: row,
+      col: col
+    }
+  })
+  if (existedShot) {
+    return false;
+  }
+
+  await Shot.create({
+    game: game.id,
+    player: enemyUser, row: row, col: col
+  });
+
+  return true;
+}
+
+const shotEverythere = async (game, user, row, col) => {
+  const directions = [
+    {row: -1, col: 0},
+    {row: 1, col: 0},
+    {row: 0, col: -1},
+    {row: 0, col: 1},
+    {row: -1, col: -1},
+    {row: -1, col: 1},
+    {row: 1, col: -1},
+    {row: 1, col: 1},
+  ]
+  await Promise.all(directions.map(direction => {
+    return shot(game, user, row+direction.row, col+direction.col);
+  }));
+}
+
 router.post('/:id/shot', passport.authenticate('jwt', {session: false}), async function (req, res) {
   const {user} = req.user;
   const game = await Game.findByPk(req.params.id, {include: ['playerUser', 'enemyUser']});
@@ -143,27 +182,37 @@ router.post('/:id/shot', passport.authenticate('jwt', {session: false}), async f
     return
   }
 
-  const existedShot = await Shot.findOne({
-    where: {
-      game: game.id,
-      player: user.id,
-      row: req.body.row,
-      col: req.body.col
-    }
-  })
-  if (existedShot) {
+  if(!await shot(game, user, req.body.row, req.body.col)) {
     res.json({game: await normalizeGame(game, user), error: 'Вы уже стреляли сюда'})
     return
   }
 
   const enemyUser = game.enemy !== user.id ? game.enemy : game.player;
-  await Shot.create({
-    game: game.id,
-    player: enemyUser, row: req.body.row, col: req.body.col
-  });
 
   const field = await Field.findOne({where: {game: game.id, player: enemyUser, row: req.body.row, col: req.body.col}})
   if (field) {
+
+    const cells = await Field.findAll({where: {player: enemyUser, game: game.id}});
+    const figure = getFigure(cells, field)
+    const everythingShotted = true;
+    for (const cell of figure) {
+      const existedShot = await Shot.findOne({
+        where: {
+          game: game.id,
+          player: user.id,
+          row: field.row,
+          col: field.col
+        }
+      })
+      if(!existedShot) {
+        everythingShotted = false;
+      }
+    }
+    if(everythingShotted) {
+      await Promise.all(figure.map(cell => {
+        return shotEverythere(game, user, cell.row, cell.col);
+      }))
+    }
     res.json({game: await normalizeGame(game, user), result: 'Вы попали по кораблю'})
     return
   }

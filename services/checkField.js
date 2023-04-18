@@ -10,14 +10,14 @@ function safeGetCell(matrix, row, col) {
 }
 
 function findAllCellsOfFigure(cell, matrix, figure) {
-  if(!cell || !cell.filled) {
+  if(!cell || !cell.filled || !cell.row || !cell.col) {
     return figure;
   }
   if(figure.some(item => item.row === cell.row && item.col === cell.col)) {
-    return figure;
+    return;
   }
 
-  figure.push({...cell});
+  figure.push({row: +cell.row, col: +cell.col, filled: true});
 
   const directions = [
     {row: -1, col: 0},
@@ -27,7 +27,9 @@ function findAllCellsOfFigure(cell, matrix, figure) {
   ]
   directions.forEach(direction => {
     const checkCell = safeGetCell(matrix, cell.row+direction.row, cell.col+direction.col);
-    findAllCellsOfFigure(checkCell, matrix, figure)
+    if(checkCell && checkCell.row && checkCell.col) {
+      findAllCellsOfFigure(checkCell, matrix, figure)
+    }
   })
   return figure
 }
@@ -127,7 +129,7 @@ function getSize(cells, figureCell) {
 
 function getFigure(cells, row, col) {
   const matrix = getMatrixFromCells(cells);
-  const figure = findAllCellsOfFigure({row, col}, matrix, [])
+  const figure = findAllCellsOfFigure({row, col, filled: true}, matrix, [])
   return figure;
 }
 

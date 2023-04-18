@@ -125,21 +125,33 @@ router.post('/:id/field', passport.authenticate('jwt', {session: false}), async 
   res.json({game: await normalizeGame(game, user)})
 });
 
-const shot = async (game, user, row, col) => {
+const findShot = (game, user, row, col) => {
+  if(!row || !col) {
+    return null;
+  }
   const enemyUser = game.enemy !== user.id ? game.enemy : game.player;
 
-  const existedShot = await Shot.findOne({
+  return Shot.findOne({
     where: {
       game: game.id,
       player: enemyUser,
       row: row,
       col: col
     }
-  })
+  });
+}
+
+const shot = async (game, user, row, col) => {
+  if(!row || !col) {
+    return null;
+  }
+
+  const existedShot = await findShot(game, user, row, col);
   if (existedShot) {
     return false;
   }
 
+  const enemyUser = game.enemy !== user.id ? game.enemy : game.player;
   await Shot.create({
     game: game.id,
     player: enemyUser, row: row, col: col
@@ -193,26 +205,23 @@ router.post('/:id/shot', passport.authenticate('jwt', {session: false}), async f
   if (field) {
 
     const cells = await Field.findAll({where: {player: enemyUser, game: game.id}});
-    const figure = getFigure(cells, field)
+    const figure = getFigure(cells, req.body.row, req.body.col)
     const everythingShotted = true;
     for (const cell of figure) {
-      const existedShot = await Shot.findOne({
-        where: {
-          game: game.id,
-          player: user.id,
-          row: field.row,
-          col: field.col
-        }
-      })
+      const existedShot = await findShot(game, user, field.row, field.col);
       if(!existedShot) {
         everythingShotted = false;
       }
     }
+
     if(everythingShotted) {
       await Promise.all(figure.map(cell => {
         return shotEverythere(game, user, cell.row, cell.col);
-      }))
+      }));
+      res.json({game: await normalizeGame(game, user), result: 'Вы уничтожили корабль'})
+      return
     }
+
     res.json({game: await normalizeGame(game, user), result: 'Вы попали по кораблю'})
     return
   }

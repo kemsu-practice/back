@@ -6,14 +6,14 @@ module.exports = {
     const enemyUser = game.enemy === currentUser?.id ? game.playerUser : game.enemyUser;
     const playerStatus = game.enemy === currentUser?.id ? game.enemyStatus : game.playerStatus;
     const enemyStatus = game.enemy === currentUser?.id ? game.playerStatus : game.enemyStatus;
-    const enemyShots = playerUser?.id ? await Shot.findAll({
-      where: {player: playerUser?.id, game: game.id},
+    const enemyShots = enemyUser?.id ? await Shot.findAll({
+      where: {player: enemyUser?.id, game: game.id},
       include: [
         'Field'
       ]
     }) : [];
-    const playerShots = enemyUser?.id ? await Shot.findAll({
-      where: {player: enemyUser?.id, game: game.id}, include: [
+    const playerShots = playerUser?.id ? await Shot.findAll({
+      where: {player: playerUser?.id, game: game.id}, include: [
         'Field'
       ]
     }) : [];
@@ -21,8 +21,8 @@ module.exports = {
     const result = {
       id: game.id,
       status: game.status,
-      enemy: game.enemy,
-      player: game.player,
+      enemy: enemyUser ? enemyUser.id : null,
+      player: playerUser ? playerUser.id : null,
       turn: game.turn,
       enemyUser: enemyUser ? {id: enemyUser.id, name: enemyUser.name} : null,
       playerUser: playerUser ? {id: playerUser.id, name: playerUser.name} : null,

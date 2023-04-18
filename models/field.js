@@ -4,6 +4,7 @@ const {
 } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class Field extends Model {
+    filled = true;
     static STATUS_ALIVE = 1;
     static associate(models) {
     }

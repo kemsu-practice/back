@@ -206,9 +206,9 @@ router.post('/:id/shot', passport.authenticate('jwt', {session: false}), async f
 
     const cells = await Field.findAll({where: {player: enemyUser, game: game.id}});
     const figure = getFigure(cells, req.body.row, req.body.col)
-    const everythingShotted = true;
+    let everythingShotted = true;
     for (const cell of figure) {
-      const existedShot = await findShot(game, user, field.row, field.col);
+      const existedShot = await findShot(game, user, cell.row, cell.col);
       if(!existedShot) {
         everythingShotted = false;
       }
